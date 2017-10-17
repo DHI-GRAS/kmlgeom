@@ -1,48 +1,53 @@
 import zipfile
 
+import geojson
 from lxml import etree
 
 
-def read_kmz(kmzfile):
-    with zipfile.ZipFile(kmzfile) as kmzf:
-        with kmzf.open('doc.kml') as kmlf:
-            return read_kml(kmlf)
-
-
-def kml_get_polygon(root):
+def _kml_get_polygon(root):
     """Get Polygon GeoJSON from kml etree"""
     pattern = './/{*}LinearRing/{*}coordinates'
     try:
         s = root.find(pattern).text
     except AttributeError:
-        return {}
+        return None
     cc = [(float(x), float(y)) for x, y in [p.split(',')[:2] for p in s.split()]]
-
     # make sure polygon is closed
     if cc[0] != cc[-1]:
         cc.append(cc[0])
-    gjson = {"type": "Polygon", "coordinates": [cc]}
-    return gjson
+    return geojson.Polygon(cc)
 
 
-def kml_get_point(root):
+def _kml_get_point(root):
     """Get Point GeoJSON from kml etree"""
     pattern = './/{*}Point/{*}coordinates'
     try:
         s = root.find(pattern).text
     except AttributeError:
-        return {}
+        return None
     c = [float(x) for x in s.split(',')[:2]]
-    gjson = {"type": "Point", "coordinates": c}
-    return gjson
+    return geojson.Point(c)
 
 
-def kml_get_geometry(root):
-    for func in [kml_get_polygon, kml_get_point]:
+def _kml_get_geometry(root):
+    for func in [_kml_get_polygon, _kml_get_point]:
         gjson = func(root)
-        if gjson:
+        if gjson is not None:
             return gjson
     raise ValueError('No Point or Polygon found.')
+
+
+def read_kmz(kmzfile):
+    """Extract doc.kml from KMZ file and parse geometry
+
+    Returns
+    -------
+    dict
+        GeoJSON mapping
+    """
+    with zipfile.ZipFile(kmzfile) as kmzf:
+        with kmzf.open('doc.kml') as kmlf:
+            return read_kml(kmlf)
 
 
 def read_kml(kmlfile):
@@ -55,8 +60,9 @@ def read_kml(kmlfile):
 
     Returns
     -------
-    str : GeoJSON string
+    dict
+        GeoJSON mapping
     """
     tree = etree.parse(kmlfile)
     root = tree.getroot()
-    return kml_get_geometry(root)
+    return _kml_get_geometry(root)
