@@ -40,6 +40,11 @@ def _kml_get_geometry(root):
 def read_kmz(kmzfile):
     """Extract doc.kml from KMZ file and parse geometry
 
+    Parameters
+    ----------
+    kmzfile : str
+        path to KMZ file
+
     Returns
     -------
     dict
@@ -66,3 +71,22 @@ def read_kml(kmlfile):
     tree = etree.parse(kmlfile)
     root = tree.getroot()
     return _kml_get_geometry(root)
+
+
+def read(infile):
+    """Convenience interface to read either KML or KMZ file
+
+    Parameters
+    ----------
+    infile : str
+        path to KML or KMZ file
+
+    Returns
+    -------
+    dict
+        GeoJSON mapping
+    """
+    if infile.lower().endswith('.kmz'):
+        return read_kmz(infile)
+    else:
+        return read_kml(infile)
