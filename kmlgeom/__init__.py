@@ -15,7 +15,7 @@ def _kml_get_polygon(root):
     # make sure polygon is closed
     if cc[0] != cc[-1]:
         cc.append(cc[0])
-    return geojson.Polygon(cc)
+    return geojson.Polygon([cc])
 
 
 def _kml_get_point(root):
